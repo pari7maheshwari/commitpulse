@@ -1,6 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
 
+describe('streakParamsSchema — grace fallback behavior', () => {
+  it('accepts "0" as a valid grace value', () => {
+    expect(parse({ grace: '0' }).grace).toBe(0);
+  });
+
+  it('accepts "7" as a valid grace value', () => {
+    expect(parse({ grace: '7' }).grace).toBe(7);
+  });
+
+  it('clamps "8" to 7', () => {
+    expect(parse({ grace: '8' }).grace).toBe(7);
+  });
+
+  it('clamps "-1" to 0', () => {
+    expect(parse({ grace: '-1' }).grace).toBe(0);
+  });
+
+  it('falls back to 1 for non-numeric grace value', () => {
+    expect(parse({ grace: 'abc' }).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    expect(parse({}).grace).toBe(1);
+  });
+});
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({

@@ -695,23 +695,37 @@ describe('streakParamsSchema — view fallback behavior', () => {
   });
 });
 
-/* ==========================================================================
- * DATE RANGE BOUNDARY ROBUSTNESS (VARIATION 1)
- * ========================================================================== */
+describe('streakParamsSchema — accent parameter HEX color validation', () => {
+  it('rejects an invalid hex color like "#ZZZZZZZ" for accent', () => {
+    // #ZZZZZZZ contains non-hex characters — must fail schema validation
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a valid 6-character hex color for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: 'ff0000',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
 
 describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
   it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
-    // Arrange: Provide a mock payload missing a full YYYY format sequence
     const partialYearPayload = {
       user: 'octocat',
       from: '05-12',
       to: '05-30',
     };
 
-    // Act: Pass the object through the validator schema matrix
     const result = streakParamsSchema.safeParse(partialYearPayload);
 
-    // Assert: The validator handles it safely using implicit date engine fallbacks
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.from).toBeDefined();
@@ -720,15 +734,12 @@ describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', 
   });
 
   it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
-    // Arrange: Pass only the bare minimum required parameters
     const minimalPayload = {
       user: 'octocat',
     };
 
-    // Act
     const result = streakParamsSchema.safeParse(minimalPayload);
 
-    // Assert: Verify that omitted range options return undefined to use downstream defaults smoothly
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.from).toBeUndefined();

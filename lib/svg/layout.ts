@@ -25,6 +25,7 @@ export interface TowerData {
   isToday: boolean;
   isTodayWithCommits: boolean;
   tooltip: string;
+  date: string;
   contributionCount: number;
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
@@ -67,7 +68,7 @@ export function computeFaceOpacity(count: number, isGhostCityMode: boolean): Fac
 export function projectIsometric(weekIndex: number, dayIndex: number): { x: number; y: number } {
   return {
     x: 300 + (weekIndex - dayIndex) * 16,
-    y: 120 + (weekIndex + dayIndex) * 9,
+    y: 120 + (weekIndex + dayIndex) * 10,
   };
 }
 
@@ -118,7 +119,7 @@ export function computeTowers(
       const isTodayWithCommits = isToday && hasCommits;
 
       const unit = mode === 'loc' ? 'lines of code' : 'contributions';
-      const tooltip = isTodayWithCommits
+      const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
@@ -146,6 +147,7 @@ export function computeTowers(
         isToday,
         isTodayWithCommits,
         tooltip,
+        date: day.date,
         contributionCount: count,
         faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,

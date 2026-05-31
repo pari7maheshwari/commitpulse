@@ -532,11 +532,7 @@ export function generateSVG(
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
-  ${renderHeader(safeUser, stats, sf, params, safeId)}
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  ${renderHeader(safeUser, stats, sf, params, safeId)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg)}
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
@@ -1845,14 +1841,11 @@ export function generateVersusSVG(
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
-  <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
 
   <g transform="translate(0, 0)">
@@ -1987,12 +1980,9 @@ function generateAutoThemeVersusSVG(
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
-  <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
 
   <style>

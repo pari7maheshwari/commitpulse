@@ -87,6 +87,8 @@ jobs:
                   repo: context.repo.repo,
                   issue_number: pr.number,
                   per_page: 100,
+                  sort: 'created',
+                  direction: 'desc',
                 });
 
                 const conflictComments = comments.filter(c =>
@@ -98,11 +100,11 @@ jobs:
                 if (conflictComments.length === 0) {
                   shouldComment = true;
                 } else {
-                  const lastComment = conflictComments[conflictComments.length - 1];
-                  const lastCommentTime = new Date(lastComment.created_at).getTime();
+                  const latestComment = conflictComments[0];
+                  const latestCommentTime = new Date(latestComment.created_at).getTime();
                   const nowTime = new Date().getTime();
                   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-                  if (nowTime - lastCommentTime >= TWENTY_FOUR_HOURS_MS) {
+                  if (nowTime - latestCommentTime >= TWENTY_FOUR_HOURS_MS) {
                     shouldComment = true;
                   }
                 }

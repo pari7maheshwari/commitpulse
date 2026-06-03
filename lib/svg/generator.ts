@@ -320,7 +320,8 @@ function renderStatsSection(
   s: Scaler,
   params: BadgeParams
 ): string {
-  const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+  const totalLabel =
+    params.mode === 'loc' ? 'TOTAL LINES OF CODE (EST.)' : labels.ANNUAL_SYNC_TOTAL;
   const glowAttr = params.glow !== false ? ' filter="url(#glow)"' : '';
 
   return `

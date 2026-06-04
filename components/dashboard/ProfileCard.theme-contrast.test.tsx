@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
@@ -21,8 +22,8 @@ vi.mock('recharts', () => ({
 }));
 
 describe('ProfileCard: Dark and Light Prefers-Color-Scheme Visual Cohesion', () => {
-  let mockProfileData: Record<string, unknown>;
-  let mockUser: Record<string, unknown>;
+  let mockProfileData: any;
+  let mockUser: any;
 
   beforeEach(() => {
     // Generate standard profile metrics for structural layout testing
@@ -76,7 +77,6 @@ describe('ProfileCard: Dark and Light Prefers-Color-Scheme Visual Cohesion', () 
       })),
     });
 
-    // @ts-expect-error - Safely bypassing strict mode to inject theme mock payload properties
     const { container } = render(
       <ProfileCard user={mockUser} profile={mockProfileData} data={mockProfileData} />
     );
@@ -84,34 +84,24 @@ describe('ProfileCard: Dark and Light Prefers-Color-Scheme Visual Cohesion', () 
   });
 
   it('Test 2: should assert that the visual elements adapt color styling properly for both settings', () => {
-    // @ts-expect-error - Safely bypassing strict mode to inject theme mock payload properties
     const { container } = render(
       <ProfileCard user={mockUser} profile={mockProfileData} data={mockProfileData} />
     );
-
-    // Assert structural integrity to ensure Tailwind CSS logic is successfully hydrated
     expect(container).not.toBeEmptyDOMElement();
   });
 
   it('Test 3: should verify contrast ratio standards are satisfied for all textual elements', () => {
-    // @ts-expect-error - Safely bypassing strict mode to inject theme mock payload properties
     const { container } = render(
       <ProfileCard user={mockUser} profile={mockProfileData} data={mockProfileData} />
     );
-
-    // Since JSDOM doesn't compute true visual contrast ratios, we verify structural presence
-    // of text elements ensuring they are prepared for dynamic CSS text styling
     const textNodes = container.querySelectorAll('span, p, h1, h2, h3');
     expect(textNodes.length).toBeGreaterThan(0);
   });
 
   it('Test 4: should check that specific custom stylesheet properties or Tailwind classes are active in the markup', () => {
-    // @ts-expect-error - Safely bypassing strict mode to inject theme mock payload properties
     const { container } = render(
       <ProfileCard user={mockUser} profile={mockProfileData} data={mockProfileData} />
     );
-
-    // Ensure standard UI layout elements are correctly picking up CSS module or utility classes
     const cardElement = container.firstElementChild;
     expect(cardElement).toBeTruthy();
     if (cardElement) {
@@ -120,12 +110,9 @@ describe('ProfileCard: Dark and Light Prefers-Color-Scheme Visual Cohesion', () 
   });
 
   it('Test 5: should ensure that background overlays do not clip foreground content colors', () => {
-    // @ts-expect-error - Safely bypassing strict mode to inject theme mock payload properties
     const { container } = render(
       <ProfileCard user={mockUser} profile={mockProfileData} data={mockProfileData} />
     );
-
-    // Validate background container layout structure maintains proper DOM hierarchy
     const divs = container.querySelectorAll('div');
     expect(divs.length).toBeGreaterThan(0);
   });

@@ -67,6 +67,26 @@ describe('generateSVG', () => {
     expect(svg).not.toContain('PEAK_STREAK');
   });
 
+  it('gives the scan line an explicit fill on static themes so it stays visible', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+      },
+      mockCalendar
+    );
+
+    assertValidSVG(svg);
+    // Static themes do not define the .cp-accent-fill CSS rule, so the scan line must
+    // carry an explicit hex fill or it inherits fill="none" and disappears.
+    expect(svg).toMatch(/fill="#[0-9a-fA-F]{3,8}"\s+class="cp-accent-fill scan-line"/);
+  });
+
   it('renders stats labels when hide_stats is false', () => {
     const svg = generateSVG(
       mockStats,

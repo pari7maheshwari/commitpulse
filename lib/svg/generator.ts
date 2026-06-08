@@ -582,6 +582,12 @@ function renderFooter(
   const s = createScaler(sf);
   const statsOffset = params.label === false ? -40 : 0;
 
+  // Static themes do not define the .cp-accent-fill CSS rule, so the scan line needs an
+  // explicit fill or it inherits the SVG default fill="none" and becomes invisible.
+  const scanLineFill = params.autoTheme
+    ? 'class="cp-accent-fill scan-line"'
+    : `fill="${accent}" class="cp-accent-fill scan-line"`;
+
   const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${
     params.isOfflineFallback
       ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>'
@@ -601,7 +607,7 @@ function renderFooter(
     y="${s(80 + statsOffset)}"
     width="${s(400)}"
     height="${s(1)}"
-    class="cp-accent-fill scan-line"
+    ${scanLineFill}
     fill-opacity="0.3"
     style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;

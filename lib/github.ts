@@ -30,6 +30,7 @@ const BASE_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
+const ORG_MEMBER_LIMIT = 100;
 
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
@@ -926,7 +927,9 @@ export async function getOrgDashboardData(
   if (membersOrError instanceof Error) throw membersOrError;
 
   const members = membersOrError;
-  const activeMembers = members.slice(0, 30);
+
+  // Limit active members to protect shared token rate limit and improve response times
+  const activeMembers = members.slice(0, ORG_MEMBER_LIMIT);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -953,7 +956,10 @@ export async function getOrgDashboardData(
     clearTimeout(timeoutId);
   }
 
-  const isPartial = calendars.length < activeMembers.length;
+  const isPartial =
+    members.length > activeMembers.length || calendars.length < activeMembers.length;
+
+  // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
   const streakStats = calculateStreak(aggregatedCalendar);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);

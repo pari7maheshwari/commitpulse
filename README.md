@@ -16,18 +16,12 @@
 
 ## 📖 Table of Contents
 
-- [Design Philosophy](#the-isometric-monolith--design-philosophy)
 - [Live Demo](#live-demo)
-- [Deep Customization](#deep-customization--url-parameters)
-- [Theme Presets](#theme-presets)
-- [Theme Preview Gallery](#theme-preview-gallery)
-- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
-- [Architecture & Tech Stack](#architecture--tech-stack)
-- [Self-Hosting](#self-hosting-in-4-steps)
-- [Automated Contributor Workflow](#automated-contributor-workflow)
-- [FAQ](#faq)
+- [Features](#-features)
+- [Documentation Index](#documentation-index)
 - [Contributing](#contributing)
 - [License](#license)
+- [Maintainers](#maintainers)
 - [Themes](#themes)
 - [Contributors](#contributors)
 
@@ -42,32 +36,6 @@
 ```
 
 </div>
-
----
-
-## 🏛️ The Isometric Monolith — Design Philosophy
-
-Most GitHub stat badges are **flat**. Flat bars, flat text, flat colors. They blend into every README on the planet.
-
-**CommitPulse is different.**
-
-We render your contribution data as a **3D Isometric City** — a grid of glowing towers where each column's height is directly proportional to your commit count that day. The more you grind, the taller your skyline grows.
-
-**Ghost City Architecture:** In this mode, zero-contribution days aren't just empty space. They are rendered as thin, wireframe-style **blueprint foundations** (4px high). This gives your commit landscape a structured, architectural "work-in-progress" look even during rest days, maintaining the premium 3D aesthetic across the entire calendar.
-
-This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
-
-### Why Isometric > Flat
-
-| Property         | Flat Badges       | CommitPulse Monolith                                                       |
-| ---------------- | ----------------- | -------------------------------------------------------------------------- |
-| **Visual Depth** | None              | Full isometric 3D perspective                                              |
-| **Data Density** | 3 numbers         | 98-day contribution landscape                                              |
-| **Animation**    | Static            | Radar scan line, glow effects & live pulsing indicator for today's commits |
-| **Personality**  | Generic           | Uniquely yours, every day                                                  |
-| **Impression**   | "They have stats" | "They ship code like a machine"                                            |
-
-The design philosophy is simple: **your commit history deserves a monument, not a meter.**
 
 ---
 
@@ -144,55 +112,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
 
----
-
-## 🎨 Deep Customization — URL Parameters
-
-CommitPulse is designed to be **fully composable**. Every visual attribute is controllable via a URL parameter, following a clear priority chain:
-
-```
-URL Parameter > Theme Default > System Fallback
-```
-
-### Parameter Reference
-
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
-| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
-| `border`          | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
-| `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
-| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
-| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                           |
-| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), or `heatmap` (flat 2D contribution heatmap)                                                   |
-| `entrance`        | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                              |
-| `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
-| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
-| `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
-| `grace`           | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.          |
-| `mode`            | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                    |
-| `repo`            | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                            |
-| `org`             | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                             |
-| `labels`          | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                             |
-| `labelColor`      | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                              |
-| `versus`          | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                             |
-| `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
-| `opacity`         | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.        |
-| `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
-
-### Grace Period Examples
+#### 📅 Monthly Summary
 
 ```md
 <!-- Strict mode — streak resets on any single missed day -->
@@ -210,19 +130,23 @@ URL Parameter > Theme Default > System Fallback
 
 ### Theme Presets
 
-| Theme              | Preview                     | `bg`     | `accent` | `text`   |
-| ------------------ | --------------------------- | -------- | -------- | -------- |
-| `auto`             | System light / dark         | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green                | `0d1117` | `39d353` | `ffffff` |
-| `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | Retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
-| `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
-| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
-| `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
-| `obsidian`         | Deep charcoal & amber gold  | `1a1a2e` | `f59e0b` | `e2e8f0` |
+| Theme              | Preview                      | `bg`     | `accent` | `text`   |
+| ------------------ | ---------------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark          | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark                  | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk                    | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro                  | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green                 | `0d1117` | `39d353` | `ffffff` |
+| `light`            | Clean & minimal              | `ffffff` | `0969da` | `24292f` |
+| `gruvbox`          | Retro warm dark              | `282828` | `fe8019` | `ebdbb2` |
+| `random`           | Surprise theme on reload     | _varies_ | _varies_ | _varies_ |
+| `highcontrast`     | Accessibility high contrast  | `0a0a0a` | `ff4500` | `ffffff` |
+| `cyber-pulse`      | AMOLED true-black & cyan     | `000000` | `00ffee` | `ffffff` |
+| `obsidian`         | Deep charcoal & amber gold   | `1a1a2e` | `f59e0b` | `e2e8f0` |
+| `glacier`          | Icy sky blue & cyan          | `e0f2fe` | `06b6d4` | `0369a1` |
+| `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
+| `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
+| `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -339,6 +263,162 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
 ```
+
+---
+
+---
+
+## ✨ Features
+
+CommitPulse transforms GitHub contribution data into visually engaging and highly customizable SVG badges.
+
+### 🎨 Theme & Customization
+
+- Multiple built-in themes including Dark, Neon, Dracula, Gruvbox, GitHub, and more.
+- Custom colors using `bg`, `accent`, and `text` parameters.
+- Dynamic font selection and styling options.
+- Adjustable dimensions, border radius, opacity, gradients, and shading.
+- Automatic light/dark mode adaptation with the `auto` theme.
+
+### 📈 Contribution Analytics
+
+- Current streak and longest streak tracking.
+- Monthly contribution summaries and trends.
+- Historical contribution viewing by year.
+- Grace period configuration for streak calculations.
+- Lines of Code (LOC) contribution mode.
+
+### 🔥 Visualization Modes
+
+- GitHub-style heatmap view.
+- Monthly statistics view.
+- Isometric 3D monolith rendering.
+- Animated SVG visualizations.
+- Theme-aware rendering and effects.
+
+### 🌍 Localization & Accessibility
+
+- Multi-language support including Hindi and Chinese.
+- Timezone-aware contribution calculations.
+- High-contrast accessibility theme.
+- Responsive SVG rendering across devices.
+
+### ⚔️ Comparison Features
+
+- Side-by-side contribution comparisons using the `versus` parameter.
+- Comparative contribution insights between GitHub users.
+- Monthly delta and trend analysis.
+
+### ⚡ Performance & Reliability
+
+- Real-time GitHub GraphQL integration.
+- UTC-midnight synchronized caching.
+- Edge deployment powered by Vercel.
+- Optimized SVG generation pipeline.
+- Cache refresh support for the latest contribution data.
+
+---
+
+## 🎯 Real-Time Accuracy — The Contribution Count Problem
+
+GitHub's contribution graph can return **different totals** depending on _when_ and _how_ you query it. We solved this at the infrastructure level.
+
+### The Problem: Off-by-N Contributions
+
+The GitHub GraphQL API calculates `totalContributions` and daily contribution windows using **UTC-based ISO 8601 timestamps**. A naive implementation that queries at any arbitrary time — without anchoring to UTC midnight boundaries — will produce counts that are _inconsistent_ between requests. This is the root cause of the classic "my card shows 378 but GitHub shows 385" discrepancy.
+
+### The Solution: UTC Midnight Synchronization
+
+CommitPulse uses a two-part fix:
+
+**1. Cache invalidation anchored to UTC midnight (`utils/time.ts`)**
+
+```typescript
+export function getSecondsUntilUTCMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0)
+  );
+  return Math.floor((midnight.getTime() - now.getTime()) / 1000);
+}
+```
+
+The CDN cache TTL is set to expire at **exactly the next UTC midnight**, not at some fixed-interval offset. This guarantees that when GitHub's contribution window rolls over, our cache does too — simultaneously.
+
+**2. No internal fetch caching (`lib/github.ts`)**
+
+```typescript
+const res = await fetch(GITHUB_API_URL, {
+  cache: 'no-store', // Bypass Next.js's internal fetch cache
+});
+```
+
+Caching is handled entirely at the HTTP response layer (`Cache-Control: s-maxage`), giving us surgical control over what gets cached and for how long — without stale data poisoning the GraphQL response.
+
+**Result:** CommitPulse's contribution counts are always in sync with GitHub's actual UTC day boundaries.
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+```
+app/api/streak/route.ts       →  Next.js 16 Edge-compatible API Route
+app/api/track-user/route.ts   →  User tracking API — records GitHub usernames to MongoDB
+lib/github.ts                 →  GitHub GraphQL API client
+lib/calculate.ts              →  Streak algorithm (current + longest + grace period)
+lib/mongodb.ts                →  Cached MongoDB connection utility (serverless-safe)
+lib/svg/generator.ts          →  3D Isometric SVG renderer + CSS animations
+lib/svg/themes.ts             →  Prebuilt theme palette system
+models/User.ts                →  Mongoose User schema
+utils/time.ts                 →  UTC midnight synchronization utilities
+types/index.ts                →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
+```
+
+| Layer           | Technology                               | Purpose                                                            |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment                                        |
+| **Language**    | TypeScript 5                             | Type-safe parameters and interfaces                                |
+| **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query                                    |
+| **Database**    | MongoDB + Mongoose                       | Tracks GitHub usernames of users who generate a monolith           |
+| **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect                             |
+| **Animation**   | SVG `<animate>`                          | Radar scan line + current-day block pulsing, no external libraries |
+| **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`                                        |
+| **Deployment**  | Vercel Edge Network                      | Auto-scaling, global CDN                                           |
+| **Caching**     | `Cache-Control: s-maxage`                | UTC-midnight-synced cache invalidation                             |
+
+---
+
+🏗️ Architecture Diagram
+
+```
+GitHub GraphQL API
+↓
+Contribution Processing
+↓
+Streak Calculation Engine
+↓
+SVG Geometry Renderer
+↓
+Animation Layer
+↓
+Edge Cache/CDN
+↓
+Generated SVG Badge
+![CommitPulse Monthly](https://commitpulse.vercel.app/api/streak?user=octocat&view=monthly)
+```
+
+---
+
+## 📚 Documentation Index
+
+To keep this guide concise and easy to read, we have modularized our technical documentation. Click any of the links below to access detailed guides and resources:
+
+- **[🎨 Customization Guide & Parameters](docs/customization.md)**: Explore the list of over 30 URL parameters including `theme`, `view` (e.g. `skyline` or `languages`), `radius`, `grace`, `tz`, `entrance`, `versus`, and layout dimensions to style your monolith.
+- **[🏛️ Architecture & Design Philosophy](docs/architecture.md)**: Read about why we built isometric 3D monolith landscapes instead of flat meters, and check out our Next.js 16 Edge computing pipeline.
+- **[🚀 Self-Hosting & Deployment](docs/self_hosting.md)**: Step-by-step instructions to clone, configure `.env.local` with GitHub Personal Access Tokens (PAT), set up MongoDB tracking, and deploy to Vercel with one click.
+- **[🤖 Automated Contributor Workflow](docs/contributor_workflow.md)**: Overview of GSSoC contribution automation, self-claiming comments `/claim`, anti-hoarding rules, stale unassign scripts, and Gemini AI-powered semantic issue duplication check.
+- **[🎯 Real-Time Accuracy & Caching](docs/accuracy.md)**: Deep dive into the "off-by-N contributions" problem and how CommitPulse solves it with UTC midnight CDN expiration and no-store GraphQL fetches.
+- **[❓ FAQ & Troubleshooting](docs/faq.md)**: Answers to common questions regarding timezone overrides, private contribution visibility, GitHub API rate limits, and troubleshooting.
 
 ---
 
@@ -559,13 +639,22 @@ MIT © [Sourav Jha](https://github.com/JhaSourav07)
 
 ---
 
+## 👥 Maintainers
+
+- **Sourav Jha** ([@jhasourav07](https://github.com/jhasourav07)) - [LinkedIn](https://linkedin.com/in/souravjhahind)
+- **Aamod Kumar** ([@Aamod007](https://github.com/Aamod007)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
+
+For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINER.md).
+
+---
+
 ## 🎨 Themes
 
 Browse theme previews here: [Theme Gallery](THEMES.md)
 
 ---
 
-<div align="center">
+  <div align="center">
 
 _Built with obsession, shipped with precision._
 
@@ -573,7 +662,7 @@ _Built with obsession, shipped with precision._
 
 ### This project is an official participant in GSSoC 2026.
 
-</div>
+  </div>
 
 ---
 
@@ -581,8 +670,8 @@ _Built with obsession, shipped with precision._
 
 Thanks to all contributors who have helped make CommitPulse better!
 
-<a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=300&columns=14" alt="Contributors" />
-</a>
+  <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=300&columns=14" alt="Contributors" />
+  </a>
 
 <sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>

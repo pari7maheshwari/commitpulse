@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { trackUserRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
+import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
+import { githubUsernameSchema } from '@/lib/validations';
+import { sanitizeMongoPayload } from '@/utils/sanitize';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
   const ip = getClientIp(req);
 
-  if (ip !== '127.0.0.1' && ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
+  const rateLimitKey = ip === 'unknown' ? 'unknown-client' : ip;
+
+  const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
+
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 
@@ -27,12 +33,23 @@ export async function POST(req: Request) {
     );
   }
 
+  // Sanitize MongoDB operators from body to prevent injection
+  sanitizeMongoPayload(body);
+
   try {
     const { username } = body as { username?: unknown };
 
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing username' },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = githubUsernameSchema.safeParse(username);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub username' },
         { status: 400 }
       );
     }

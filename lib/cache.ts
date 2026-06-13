@@ -1,3 +1,6 @@
+import { randomUUID } from 'crypto';
+import { brotliCompressSync, brotliDecompressSync } from 'zlib';
+
 /**
  * Represents a cached item with its expiration timestamp.
  */
@@ -15,7 +18,7 @@ type CacheItem<T> = {
  * @typeParam T - Type of values stored in the cache.
  */
 export class TTLCache<T> {
-  private store = new Map<string, CacheItem<T>>();
+  private store = new Map<string, CacheItem<T | Buffer>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
 
@@ -56,6 +59,44 @@ export class TTLCache<T> {
     }
   }
 
+  private compress(value: T): T | Buffer {
+    if (typeof value === 'string') {
+      if (value.length > 1024) {
+        try {
+          return brotliCompressSync(Buffer.from(value));
+        } catch {
+          return value;
+        }
+      }
+    } else if (value && typeof value === 'object') {
+      try {
+        const str = JSON.stringify(value);
+        if (str.length > 1024) {
+          return brotliCompressSync(Buffer.from(str));
+        }
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
+  private decompress(stored: T | Buffer): T {
+    if (Buffer.isBuffer(stored)) {
+      try {
+        const decompressed = brotliDecompressSync(stored).toString();
+        try {
+          return JSON.parse(decompressed) as T;
+        } catch {
+          return decompressed as unknown as T;
+        }
+      } catch {
+        return stored as unknown as T;
+      }
+    }
+    return stored;
+  }
+
   /**
    * Retrieves a value from the cache.
    *
@@ -78,7 +119,7 @@ export class TTLCache<T> {
       return null;
     }
 
-    return hit.value;
+    return this.decompress(hit.value);
   }
 
   /**
@@ -146,11 +187,18 @@ export class TTLCache<T> {
    * @returns `true` if the entry existed and was updated, `false` if missing or expired.
    */
   update(key: string, value: T): boolean {
-    TTLCache.assertValidKey(key);
-
     const hit = this.store.get(key);
-    if (!hit || Date.now() > hit.expiresAt) return false;
-    hit.value = value;
+
+    if (!hit) {
+      return false;
+    }
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return false;
+    }
+
+    hit.value = this.compress(value);
     return true;
   }
 
@@ -158,6 +206,7 @@ export class TTLCache<T> {
     TTLCache.assertValidKey(key);
     if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+    if (Number.isNaN(ttlMs)) ttlMs = 60_000;
 
     if (key.length > 10000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
@@ -175,7 +224,7 @@ export class TTLCache<T> {
     }
 
     this.store.delete(key);
-    this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
+    this.store.set(key, { value: this.compress(value), expiresAt: Date.now() + ttlMs });
   }
 
   /**
@@ -228,7 +277,7 @@ export class DistributedCache<T> {
     }
   }
 
-  async get(key: string): Promise<T | null> {
+  async get(key: string, localTtlMs: number = 5 * 60 * 1000): Promise<T | null> {
     if (!this.useRedis) {
       return this.localCache.get(key);
     }
@@ -260,7 +309,7 @@ export class DistributedCache<T> {
 
       const parsed = JSON.parse(data.result) as T;
       // Backfill local cache so subsequent requests in this instance are instant
-      this.localCache.set(key, parsed, 5 * 60 * 1000);
+      this.localCache.set(key, parsed, localTtlMs);
       return parsed;
     } catch (err) {
       console.error(`[DistributedCache] GET failed for key "${key}":`, err);
@@ -340,10 +389,8 @@ export class DistributedCache<T> {
   }
 
   async update(key: string, value: T): Promise<boolean> {
-    this.localCache.update(key, value);
-
     if (!this.useRedis) {
-      return this.localCache.has(key);
+      return this.localCache.update(key, value);
     }
 
     try {
@@ -360,7 +407,16 @@ export class DistributedCache<T> {
         throw new Error(`Redis HTTP error: ${res.status}`);
       }
       const data = await res.json();
-      return data.result === 'OK';
+      const updated = data.result === 'OK';
+
+      if (updated) {
+        this.localCache.update(key, value);
+      } else {
+        // Redis no longer has the key, so the L1 value is stale.
+        this.localCache.delete(key);
+      }
+
+      return updated;
     } catch (err) {
       console.error(`[DistributedCache] UPDATE failed for key "${key}":`, err);
       return false;
@@ -437,13 +493,19 @@ return c`;
   }
 
   /**
-   * Gets a value from the cache, or executes the load function if missing or stale.
-   * Employs both an in-memory Promise lock (L1) and a Redis Mutex (L2) to prevent Cache Stampedes.
+   * Returns cached data when available, otherwise loads and stores fresh data.
+   *
+   * Uses a two-layer coordination strategy to reduce cache stampedes:
+   * 1. Local Promise deduplication (L1) prevents duplicate fetches within the same instance.
+   * 2. Redis mutex locking (L2) prevents duplicate fetches across distributed instances.
+   *
+   * `loadFn` receives the current cached value (or null) so callers can implement
+   * stale refresh logic when needed.
    *
    * @param key - Cache key.
-   * @param loadFn - Async function to fetch the data. Receives the stale cached value if one exists.
-   * @param ttlMs - Time to live in milliseconds.
-   * @param shouldFetch - Optional predicate to force fetching even if a cache value exists (e.g. for stale delta sync).
+   * @param loadFn - Async function used to load fresh data.
+   * @param ttlMs - Cache expiration time in milliseconds.
+   * @param shouldFetch - Optional predicate that forces refresh even on cache hits.
    */
   async getOrSet(
     key: string,
@@ -451,15 +513,19 @@ return c`;
     ttlMs: number,
     shouldFetch?: (cached: T) => boolean
   ): Promise<T> {
-    // 1. L1 & L2 Cache Check
-    const cached = await this.get(key);
+    // Join an existing in-flight request before any async operation to avoid
+    // concurrent loadFn execution for the same key.
+    const existing = this.localLocks.get(key);
+    if (existing) return existing;
 
-    // If we have a cache hit and we don't need to force a refresh, return it early.
+    // Attempt to retrieve an existing value before triggering a refresh.
+    const cached = await this.get(key, ttlMs);
+
     if (cached !== null && (!shouldFetch || !shouldFetch(cached))) {
       return cached;
     }
 
-    // 2. L1 Promise Deduping (Local Lock)
+    // Double-check local locks after the await in case another call interleaved.
     const pendingLocal = this.localLocks.get(key);
     if (pendingLocal) return pendingLocal;
 
@@ -472,51 +538,64 @@ return c`;
       }
 
       const lockKey = `lock:${key}`;
-      const maxPollTime = 8000; // Give up polling after 8 seconds to stay within serverless limits
-      const pollInterval = 400;
+      const lockToken = randomUUID();
+      const maxPollTime = 8000;
+      const BASE_POLL_MS = 100;
+      const MAX_POLL_MS = 1600;
       const start = Date.now();
+      let attempt = 0;
+
+      // Only DEL the lock if the stored token still matches ours, preventing
+      // accidental deletion of a lock acquired by another instance after ours expired.
+      const luaRelease = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+      `;
+
+      const releaseLock = async (): Promise<void> => {
+        await fetch(`${this.redisUrl}/`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.redisToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(['EVAL', luaRelease, 1, lockKey, lockToken]),
+        }).catch((e) => {
+          console.error(`[DistributedCache] Lock release failed for "${key}":`, e);
+        });
+      };
 
       while (Date.now() - start < maxPollTime) {
         try {
-          // Attempt to acquire Redis Mutex
+          // NX: acquire only if lock doesn't already exist.
+          // PX 10000: auto-expire lock after 10 seconds to avoid deadlocks.
           const lockRes = await fetch(`${this.redisUrl}/`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${this.redisToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(['SET', lockKey, '1', 'NX', 'PX', 10000]),
+            body: JSON.stringify(['SET', lockKey, lockToken, 'NX', 'PX', 10000]),
           });
 
           if (lockRes.ok) {
             const lockData = await lockRes.json();
             if (lockData.result === 'OK') {
-              // Lock acquired! Execute loadFn.
               try {
                 const freshData = await loadFn(cached);
                 await this.set(key, freshData, ttlMs);
 
-                // Release lock early
-                await fetch(`${this.redisUrl}/`, {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${this.redisToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(['DEL', lockKey]),
-                }).catch(() => {});
+                // Release immediately so other instances can continue sooner.
+                await releaseLock();
 
                 return freshData;
               } catch (err) {
-                // Release lock on error so others can retry
-                await fetch(`${this.redisUrl}/`, {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${this.redisToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(['DEL', lockKey]),
-                }).catch(() => {});
+                // Remove lock even on failure so other instances don't wait
+                // for the full lock timeout period.
+                await releaseLock();
                 throw err;
               }
             }
@@ -529,10 +608,13 @@ return c`;
           return fallbackData;
         }
 
-        // Lock not acquired. Wait and poll L2 cache.
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
-        const doubleCheck = await this.get(key);
-        // If doubleCheck satisfies the condition, return it
+        // Exponential backoff reduces Redis round-trips under load compared to a fixed interval.
+        const backoffMs = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        attempt++;
+        const doubleCheck = await this.get(key, ttlMs);
+
+        // Another instance may have already populated the cache while waiting.
         if (doubleCheck !== null && (!shouldFetch || !shouldFetch(doubleCheck))) {
           return doubleCheck;
         }
@@ -544,10 +626,11 @@ return c`;
       return finalFallback;
     };
 
-    // Execute with local Promise lock
+    // Ensure local lock cleanup even if request execution fails.
     const promise = executeAndLock().finally(() => {
       this.localLocks.delete(key);
     });
+
     this.localLocks.set(key, promise);
 
     return promise;

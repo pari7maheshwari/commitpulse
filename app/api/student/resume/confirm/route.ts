@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { StudentProfile } from '@/models/StudentProfile';
 import { RateLimiter } from '@/lib/rate-limit';
-import type { ParsedResume } from '@/types/student';
 import { getClientIp } from '@/utils/getClientIp';
+import { resumeConfirmDataSchema, GITHUB_USERNAME_REGEX } from '@/lib/validations';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 const confirmLimiter = new RateLimiter(10, 60000);
 
@@ -33,7 +34,12 @@ export async function POST(req: Request) {
     data?: unknown;
   };
 
-  if (!githubUsername || typeof githubUsername !== 'string') {
+  if (
+    !githubUsername ||
+    typeof githubUsername !== 'string' ||
+    githubUsername.trim().length > 39 ||
+    !GITHUB_USERNAME_REGEX.test(githubUsername.trim())
+  ) {
     return NextResponse.json(
       { success: false, error: 'Invalid or missing githubUsername' },
       { status: 400 }
@@ -47,12 +53,29 @@ export async function POST(req: Request) {
     );
   }
 
-  const profileData = data as ParsedResume;
-
-  if (!profileData.name || !profileData.email) {
+  const { name, email } = data as { name?: unknown; email?: unknown };
+  if (!name || !email) {
     return NextResponse.json(
       { success: false, error: 'Name and email are required' },
       { status: 400 }
+    );
+  }
+
+  const parsed = resumeConfirmDataSchema.safeParse(data);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid profile data' },
+      { status: 400 }
+    );
+  }
+  const profile = parsed.data;
+  const normalizedUsername = githubUsername.trim().toLowerCase();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, error: ownership.message },
+      { status: ownership.status }
     );
   }
 
@@ -65,18 +88,19 @@ export async function POST(req: Request) {
     await dbConnect();
 
     await StudentProfile.findOneAndUpdate(
-      { githubUsername: githubUsername.trim().toLowerCase() },
+      { githubUsername: normalizedUsername },
       {
         $set: {
-          name: profileData.name,
-          email: profileData.email,
-          skills: profileData.skills || [],
-          education: profileData.education || [],
-          experience: profileData.experience || [],
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          skills: profile.skills,
+          education: profile.education,
+          experience: profile.experience,
           updatedAt: new Date(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     return NextResponse.json({ success: true });

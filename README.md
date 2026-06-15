@@ -5,6 +5,7 @@
 ### _Your GitHub contributions — as a cinematic SVG monolith._
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://commitpulse.vercel.app)
+[![GSSOC 2026](https://img.shields.io/badge/GSSOC-2026-blue.svg)](https://gssoc.girlscript.org)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 [![GraphQL](https://img.shields.io/badge/GraphQL-API-E10098?style=flat-square&logo=graphql)](https://graphql.org)
@@ -142,6 +143,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `random`           | Surprise theme on reload     | _varies_ | _varies_ | _varies_ |
 | `highcontrast`     | Accessibility high contrast  | `0a0a0a` | `ff4500` | `ffffff` |
 | `cyber-pulse`      | AMOLED true-black & cyan     | `000000` | `00ffee` | `ffffff` |
+| `retro-terminal`   | Classic CRT terminal         | `000000` | `00ff41` | `00ff41` |
 | `obsidian`         | Deep charcoal & amber gold   | `1a1a2e` | `f59e0b` | `e2e8f0` |
 | `glacier`          | Icy sky blue & cyan          | `e0f2fe` | `06b6d4` | `0369a1` |
 | `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
@@ -226,6 +228,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Render labels in Hindi -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
+
+<!-- Render labels in Portuguese -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=pt)
 
 <!-- Render labels in Simplified Chinese -->
 

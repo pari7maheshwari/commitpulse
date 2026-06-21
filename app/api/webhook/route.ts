@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 import { logger } from '@/lib/logger';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
@@ -76,7 +77,7 @@ async function readBodyWithLimit(
 
 export async function POST(req: Request) {
   // 1. Rate Limiting
-  const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
+  const ip = getClientIp(req);
   const limit = await rateLimit(ip, 10, 60000);
   if (!limit.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });

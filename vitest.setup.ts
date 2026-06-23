@@ -174,3 +174,74 @@ if (typeof globalThis.fetch !== 'undefined') {
     globalThis.fetch = guardedFetch;
   });
 }
+
+// Global Translation Context Mock
+vi.mock('@/context/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, string | number>) => {
+      const translations: Record<string, string> = {
+        'dashboard.prInsights.showing_filtered': 'Showing: {{label}} PRs — click again to reset',
+        'dashboard.prInsights.total': 'Total',
+        'dashboard.prInsights.loader': 'Crunching your pull requests...',
+        'dashboard.prInsights.error': 'Error loading insights: {{error}}',
+        'dashboard.prInsights.no_activity': 'No pull request activity found.',
+        'dashboard.prInsights.start_contributing': 'Start contributing to see your insights here!',
+        'dashboard.prInsights.total_prs': 'Total PRs',
+        'dashboard.prInsights.merge_rate': 'Merge Rate',
+        'dashboard.prInsights.avg_cycle_time': 'Avg Cycle Time',
+        'dashboard.prInsights.first_review': 'First Review',
+        'dashboard.prInsights.this_week': '+{{count}} this week',
+        'dashboard.prInsights.hrs': 'hrs',
+        'dashboard.prInsights.trend_title': 'Activity Trends',
+        'dashboard.prInsights.trend_subtitle': 'Pull requests over time',
+        'dashboard.prInsights.monthly': 'Monthly',
+        'dashboard.prInsights.weekly': 'Weekly',
+        'dashboard.prInsights.prs': 'PRs',
+        'dashboard.prInsights.status_title': 'Status Distribution',
+        'dashboard.prInsights.status_subtitle': 'Breakdown of PR states',
+        'dashboard.prInsights.merged': 'Merged',
+        'dashboard.prInsights.open': 'Open',
+        'dashboard.prInsights.closed': 'Closed',
+        'dashboard.prInsights.highlights_title': 'Key Highlights',
+        'dashboard.prInsights.highlights_subtitle':
+          'Notable achievements and milestones from your pull requests',
+        'dashboard.prInsights.most_discussed': 'Most Discussed',
+        'dashboard.prInsights.comments': 'comments',
+        'dashboard.prInsights.fastest_merged': 'Fastest Merged PR',
+        'dashboard.prInsights.hours': 'hours',
+        'dashboard.prInsights.minutes': 'minutes',
+        'dashboard.prInsights.largest_pr': 'Largest Impact',
+        'dashboard.prInsights.additions': 'additions',
+        'dashboard.prInsights.deletions': 'deletions',
+        'dashboard.prInsights.no_highlights': 'No data available',
+        'dashboard.prInsights.reviews_title': 'Review Analytics',
+        'dashboard.prInsights.reviews_subtitle': 'Peer review participation and speed',
+        'dashboard.prInsights.reviews_given': 'Reviews Given',
+        'dashboard.prInsights.reviews_received': 'Reviews Received',
+        'dashboard.prInsights.fastest_review': 'Fastest Review',
+        'dashboard.prInsights.slowest_review': 'Slowest Review',
+        'dashboard.prInsights.repo_title': 'Repository Performance',
+        'dashboard.prInsights.repo_subtitle': 'PR metrics by repository',
+        'dashboard.prInsights.repo_header': 'Repository',
+        'dashboard.prInsights.prs_header': 'PRs',
+        'dashboard.prInsights.merge_rate_header': 'Merge Rate',
+        'dashboard.prInsights.reviews_header': 'Reviews',
+        'dashboard.prInsights.avg_review_header': 'Avg Review Time',
+        'dashboard.prInsights.no_repos': 'No repository data available.',
+      };
+
+      let val = translations[key];
+      if (!val) {
+        const parts = key.split('.');
+        val = parts[parts.length - 1];
+      }
+
+      if (options) {
+        Object.keys(options).forEach((k) => {
+          val = val.replace(`{{${k}}}`, String(options[k]));
+        });
+      }
+      return val;
+    },
+  }),
+}));

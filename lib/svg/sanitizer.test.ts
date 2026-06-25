@@ -357,6 +357,26 @@ describe('parseGradientStops', () => {
     const result = parseGradientStops(colors);
     expect(result.length).toBe(MAX_GRADIENT_STOPS);
   });
+
+  it('trims whitespace around color values', () => {
+    expect(parseGradientStops('  #ff6b35 ,  #7000ff  ')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('handles whitespace with mixed valid and invalid colors', () => {
+    expect(parseGradientStops('  #ff6b35 , invalid , #7000ff ')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('ignores empty tokens', () => {
+    expect(parseGradientStops('ff6b35,,7000ff,,,')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('handles leading and trailing commas', () => {
+    expect(parseGradientStops(',ff6b35,7000ff,')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('preserves uppercase hex colors', () => {
+    expect(parseGradientStops('FF6B35,7000FF')).toEqual(['FF6B35', '7000FF']);
+  });
 });
 
 describe('sanitizeCustomText', () => {

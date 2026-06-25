@@ -7,6 +7,7 @@ import {
   sanitizeRadius,
   sanitizeFont,
   sanitizeGoogleFontUrl,
+  normalizeHexColor,
   parseGradientStops,
   MAX_GRADIENT_STOPS,
   sanitizeCustomText,
@@ -301,6 +302,42 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('c9d1d9', '000000')).toBe('c9d1d9');
       expect(hexColor('58a6ff', '000000')).toBe('58a6ff');
     });
+  });
+});
+
+describe('normalizeHexColor', () => {
+  it('normalizes valid 6-digit hex colors', () => {
+    expect(normalizeHexColor('ffffff')).toBe('ffffff');
+    expect(normalizeHexColor('#ffffff')).toBe('ffffff');
+  });
+
+  it('normalizes valid 3-digit hex colors', () => {
+    expect(normalizeHexColor('abc')).toBe('abc');
+    expect(normalizeHexColor('#abc')).toBe('abc');
+  });
+
+  it('normalizes valid 4-digit hex colors', () => {
+    expect(normalizeHexColor('f0f0')).toBe('f0f0');
+    expect(normalizeHexColor('#f0f0')).toBe('f0f0');
+  });
+
+  it('normalizes valid 8-digit hex colors', () => {
+    expect(normalizeHexColor('ff00ff00')).toBe('ff00ff00');
+    expect(normalizeHexColor('#ff00ff00')).toBe('ff00ff00');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(normalizeHexColor('  #ffffff  ')).toBe('ffffff');
+  });
+
+  it('returns null for invalid values', () => {
+    expect(normalizeHexColor('invalid')).toBeNull();
+    expect(normalizeHexColor('zzzzzz')).toBeNull();
+    expect(normalizeHexColor('')).toBeNull();
+  });
+
+  it('returns null for hash-only input', () => {
+    expect(normalizeHexColor('#')).toBeNull();
   });
 });
 

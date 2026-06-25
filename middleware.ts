@@ -29,10 +29,10 @@ export async function middleware(request: NextRequest) {
 
   if (isRefreshRequest) {
     // Strict rate limit for explicit refresh requests: 3 requests per 10 minutes (600,000ms)
-    result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000);
+    result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000, 'api');
   } else {
     // Standard rate limit: 60 requests per 1 minute (60,000ms)
-    result = await rateLimit(ip, 60, 60000);
+    result = await rateLimit(ip, 60, 60000, 'api');
   }
 
   if (!result.success) {

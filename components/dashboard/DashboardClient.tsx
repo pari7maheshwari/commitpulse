@@ -1220,6 +1220,8 @@ export default function DashboardClient({
                 <div className="relative flex items-center">
                   <input
                     ref={compareInputRef}
+                    id="compare-github-username"
+                    name="compareGithubUsername"
                     type="text"
                     required
                     disabled={isLoadingSecond}

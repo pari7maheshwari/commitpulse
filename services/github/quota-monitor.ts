@@ -1,3 +1,4 @@
+import 'server-only';
 interface TokenQuotaState {
   limit: number;
   remaining: number;
@@ -90,6 +91,43 @@ export class QuotaMonitor {
       limit: worst.limit,
       remaining: worst.remaining,
       resetTime: worst.resetTime,
+      totalRefreshes: this.totalRefreshes,
+    };
+  }
+
+  /**
+   * Returns aggregate quota summary across all tracked tokens.
+   * Values are masked for security — only aggregate sums and counts are exposed.
+   */
+  public getAggregateQuota() {
+    const states = Array.from(this.tokenQuotas.values());
+    const tokenCount = this.tokenQuotas.size;
+
+    if (tokenCount === 0) {
+      return {
+        totalTokens: 1,
+        activeTokens: 1,
+        aggregateLimit: 5000,
+        aggregateRemaining: 5000,
+        lowestRemainingPercent: 100,
+        totalRefreshes: this.totalRefreshes,
+      };
+    }
+
+    const aggregateLimit = states.reduce((sum, s) => sum + s.limit, 0);
+    const aggregateRemaining = states.reduce((sum, s) => sum + s.remaining, 0);
+    const now = Date.now();
+    const activeTokens = states.filter((s) => s.remaining > 0 && s.resetTime > now).length;
+    const lowestPercent = Math.min(
+      ...states.map((s) => (s.limit > 0 ? (s.remaining / s.limit) * 100 : 0))
+    );
+
+    return {
+      totalTokens: tokenCount,
+      activeTokens,
+      aggregateLimit,
+      aggregateRemaining,
+      lowestRemainingPercent: Math.round(lowestPercent * 100) / 100,
       totalRefreshes: this.totalRefreshes,
     };
   }

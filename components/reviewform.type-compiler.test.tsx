@@ -64,7 +64,6 @@ describe('Review Form Type Compiler Validation & Schema Constraints Stability', 
     const resHandle = ReviewFormSchema.safeParse(invalidHandle);
     expect(resHandle.success).toBe(false);
 
-    // @ts-expect-error Testing invalid enum
     const invalidPlatform = { ...invalidHandle, handle: 'valid', platform: 'linkedin' };
     const resPlatform = ReviewFormSchema.safeParse(invalidPlatform);
     expect(resPlatform.success).toBe(false);

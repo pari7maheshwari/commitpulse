@@ -15,7 +15,8 @@ vi.mock('framer-motion', () => ({
           React.createElement(tag, props, children),
     }
   ),
-  AnimatePresence: ({ children }: { children?: React.ReactNode }) => React.createElement(React.Fragment, null, children),
+  AnimatePresence: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
 }));
 
 // Mock recharts ResponsiveContainer

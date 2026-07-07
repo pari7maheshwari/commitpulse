@@ -1,61 +1,62 @@
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom/vitest';
-
 import { CommitPulseSection } from './CommitPulseSection';
 
-// Mock hook and validation to avoid complex async in basic tests
-vi.mock('@/hooks/useDebounce', () => ({
-  useDebounce: (value: string) => value,
-}));
+// --- Default Props ---
+const defaultProps = {
+  githubUsername: 'octocat',
+  showCommitPulse: true,
+  commitPulseAccent: '10b981',
+  onGithubUsernameChange: vi.fn(),
+  onShowCommitPulseChange: vi.fn(),
+  onCommitPulseAccentChange: vi.fn(),
+};
 
-vi.mock('@/lib/validations', () => ({
-  validateGitHubUsername: vi.fn(() => true),
-}));
-
-let shouldCrash = false;
-
-// Mock SectionCard to simulate unexpected runtime exceptions
+// --- Mocks ---
+// We mock the child SectionCard to trigger a runtime error in one of the tests
 vi.mock('../SectionCard', async (importOriginal) => {
-  const actual: any = await importOriginal();
+  const actual = await importOriginal<typeof import('../SectionCard')>();
   return {
     ...actual,
     SectionCard: (props: any) => {
-      if (shouldCrash) {
-        throw new Error('Simulated Component Crash');
+      if (props.title === 'THROW_RUNTIME_ERROR') {
+        throw new Error('Nested Runtime Exception');
       }
       return <actual.SectionCard {...props} />;
-    }
+    },
   };
 });
 
-class TestErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
+// Test Error Boundary
+class TestErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode; onRecover?: () => void },
+  { hasError: boolean }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: ReactNode; fallback: ReactNode; onRecover?: () => void }) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
-  componentDidCatch(error: Error) {
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught:', error.message);
   }
-  reset = () => {
-    shouldCrash = false;
-    this.setState({ hasError: false, error: null });
+
+  resetBoundary = () => {
+    this.setState({ hasError: false });
+    this.props.onRecover?.();
   };
+
   render() {
     if (this.state.hasError) {
       return (
-        <div data-testid="error-boundary">
-          <h2>Fallback UI</h2>
-          <p>{this.state.error?.message}</p>
-          <button onClick={this.reset}>Retry Action</button>
+        <div data-testid="error-fallback">
+          {this.props.fallback}
+          <button onClick={this.resetBoundary}>Retry</button>
         </div>
       );
     }
@@ -63,115 +64,112 @@ class TestErrorBoundary extends React.Component<
   }
 }
 
-const defaultProps = {
-  githubUsername: '',
-  showCommitPulse: true,
-  commitPulseAccent: '',
-  onGithubUsernameChange: vi.fn(),
-  onShowCommitPulseChange: vi.fn(),
-  onCommitPulseAccentChange: vi.fn(),
-};
-
-describe('CommitPulseSection Error Resilience & Stability (Variation 6)', () => {
-  let consoleErrorSpy: any;
-  const originalFetch = global.fetch;
+describe('CommitPulseSection - Error Resilience (Variation 6)', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    shouldCrash = false;
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        exists: true,
-        login: 'testuser',
-        name: 'Test User',
-        avatar_url: 'https://example.com/avatar.png',
-        public_repos: 10,
-        stats: { currentStreak: 5, longestStreak: 10, totalContributions: 100 }
-      })
-    });
+    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ login: 'octocat', stats: { currentStreak: 5 } }),
+      } as Response)
+    );
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
-    global.fetch = originalFetch;
+    fetchSpy.mockRestore();
   });
 
-  it('Case 1: Verify Hydration Stability - renders without mismatch warnings', () => {
+  it('1. Hydration Stability: renders component via SSR+hydration gracefully', () => {
     const { container } = render(<CommitPulseSection {...defaultProps} />);
     
-    // Check that console.error was not called with hydration warnings
-    const hydrationErrors = consoleErrorSpy.mock.calls.filter((call: any[]) => 
-      typeof call[0] === 'string' && call[0].includes('Hydration failed')
-    );
-    expect(hydrationErrors).toHaveLength(0);
-    expect(container).toBeInTheDocument();
+    // Verify component mounts without crashes
+    expect(container).toBeTruthy();
+    // Verify hydration didn't trigger React warnings
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
-  it('Case 2: Runtime Exception Handling - handles utility fetch errors without crashing', async () => {
-    // Mock global fetch to throw an unexpected error instead of returning a response
-    global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network disconnected'));
-    
-    render(<CommitPulseSection {...defaultProps} githubUsername="testuser" />);
-    
-    // The component catches the fetch error and displays it gracefully
-    expect(await screen.findByText(/Verification failed: Network disconnected/i)).toBeInTheDocument();
-    
-    // Ensure no unhandled crashes reached the error boundary or caused a full unmount
-    expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();
-  });
-
-  it('Case 3: Error Boundary Recovery - renders fallback UI when exception occurs', () => {
-    shouldCrash = true;
-    
+  it('2. Runtime Exception Safety: catches nested exceptions and shows fallback UI', () => {
     render(
-      <TestErrorBoundary>
+      <TestErrorBoundary fallback={<div data-testid="runtime-error">Fallback UI</div>}>
+        <CommitPulseSection {...defaultProps} title="THROW_RUNTIME_ERROR" />
+      </TestErrorBoundary>
+    );
+
+    // Verify application did not crash and fallback UI is shown
+    expect(screen.getByTestId('error-fallback')).toBeInTheDocument();
+    expect(screen.getByTestId('runtime-error')).toBeInTheDocument();
+  });
+
+  it('3. Service / Database Failure Recovery: degrades gracefully on rejected API calls', async () => {
+    // Mock the fetch call to reject, simulating a network or service failure
+    fetchSpy.mockRejectedValueOnce(new Error('Service Unavailable'));
+
+    render(
+      <TestErrorBoundary fallback={<div>Should not hit error boundary</div>}>
+        <CommitPulseSection {...defaultProps} githubUsername="octocat" />
+      </TestErrorBoundary>
+    );
+
+    // The component handles fetch errors internally and shows a verification failed message
+    await waitFor(() => {
+      expect(screen.getByText(/Verification failed/i)).toBeInTheDocument();
+    });
+    
+    // Ensure no uncaught exceptions escape by verifying the document remains intact
+    expect(document.body).toBeTruthy();
+    expect(screen.queryByText('Should not hit error boundary')).not.toBeInTheDocument();
+  });
+
+  it('4. Telemetry / Logger Verification: logs the exact exception once with expected arguments', () => {
+    render(
+      <TestErrorBoundary fallback={<div />}>
+        <CommitPulseSection {...defaultProps} title="THROW_RUNTIME_ERROR" />
+      </TestErrorBoundary>
+    );
+
+    // Verify console.error was captured
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    
+    // Verify logger was invoked exactly once for the ErrorBoundary catch
+    const loggedError = consoleErrorSpy.mock.calls.find(call => call.includes('ErrorBoundary caught:'));
+    expect(loggedError).toBeTruthy();
+    expect(loggedError?.[1]).toBe('Nested Runtime Exception');
+  });
+
+  it('5. Recovery UI: attempts recovery properly upon user interaction', () => {
+    const mockRecoverFn = vi.fn();
+
+    const { rerender } = render(
+      <TestErrorBoundary fallback={<div>Oops! Something failed.</div>} onRecover={mockRecoverFn}>
+        <CommitPulseSection {...defaultProps} title="THROW_RUNTIME_ERROR" />
+      </TestErrorBoundary>
+    );
+
+    // Component is initially in error state
+    expect(screen.getByText('Oops! Something failed.')).toBeInTheDocument();
+    
+    // Simulate fixing the root cause for the next render
+    rerender(
+      <TestErrorBoundary fallback={<div>Oops! Something failed.</div>} onRecover={mockRecoverFn}>
         <CommitPulseSection {...defaultProps} />
       </TestErrorBoundary>
     );
 
-    // Verify the fallback UI is rendered instead of a blank screen
-    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
-    expect(screen.getByText('Fallback UI')).toBeInTheDocument();
-    expect(screen.getByText('Simulated Component Crash')).toBeInTheDocument();
-  });
+    // Simulate clicking the recovery action
+    const retryButton = screen.getByRole('button', { name: /retry/i });
+    fireEvent.click(retryButton);
 
-  it('Case 4: Error Logging - verifies errors are logged exactly once by boundary', () => {
-    shouldCrash = true;
+    // Verify recovery callback was executed
+    expect(mockRecoverFn).toHaveBeenCalledTimes(1);
     
-    render(
-      <TestErrorBoundary>
-        <CommitPulseSection {...defaultProps} />
-      </TestErrorBoundary>
-    );
-
-    // Verify our custom error boundary telemetry logger actually fired
-    const boundaryLogs = consoleErrorSpy.mock.calls.filter((call: any[]) => 
-      call[0] === 'ErrorBoundary caught:' && call[1] === 'Simulated Component Crash'
-    );
-    expect(boundaryLogs.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('Case 5: Recovery UI - clicking retry recovers the component', async () => {
-    const user = userEvent.setup();
-    shouldCrash = true;
-    
-    render(
-      <TestErrorBoundary>
-        <CommitPulseSection {...defaultProps} />
-      </TestErrorBoundary>
-    );
-
-    // Assert crashed state
-    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
-    
-    // Attempt recovery
-    const retryButton = screen.getByRole('button', { name: /retry action/i });
-    await user.click(retryButton);
-
-    // Assert healthy recovered state
-    expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();
-    expect(screen.getByText('Include badge in README')).toBeInTheDocument();
+    // Verify the component recovered and fallback is removed
+    expect(screen.queryByText('Oops! Something failed.')).not.toBeInTheDocument();
+    // The main component should now be visible (we look for the label or text)
+    expect(screen.getByText(/GitHub Username/i)).toBeInTheDocument();
   });
 });

@@ -164,12 +164,23 @@ export function getGitHubTokens(): string[] {
     .filter((token) => isValidGitHubTokenFormat(token));
 }
 
-function isAbortError(error: unknown): boolean {
-  return (
+export function isAbortError(error: unknown): boolean {
+  if (
     typeof error === 'object' &&
     error !== null &&
     'name' in error &&
-    (error as { name?: unknown }).name === 'AbortError'
+    ((error as { name?: unknown }).name === 'AbortError' ||
+      (error as { name?: unknown }).name === 'TimeoutError')
+  ) {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('timeout') ||
+    lower.includes('timed out') ||
+    lower.includes('aborted') ||
+    lower.includes('operation was aborted')
   );
 }
 

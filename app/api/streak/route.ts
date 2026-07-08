@@ -7,6 +7,7 @@ import {
   getOrgDashboardData,
   getCircuitTelemetry,
   fetchCommitHourDistribution,
+  isAbortError,
 } from '@/lib/github';
 import {
   calculateStreak,
@@ -729,6 +730,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const message = sanitizeErrorMessage(rawMessage);
 
   if (parseResult.success && parseResult.data.format === 'json') {
+    const isTimeout = isAbortError(error);
     const isNotFound =
       rawMessage.toLowerCase().includes('not found') ||
       rawMessage.toLowerCase().includes('could not resolve');
@@ -738,6 +740,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       rawMessage.toLowerCase().includes('invalid') ||
       rawMessage.toLowerCase().includes('validation') ||
       rawMessage.toLowerCase().includes('strictly for organizations');
+
+    if (isTimeout) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        {
+          status: 504,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        }
+      );
+    }
 
     const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
     const jsonErrorHeaders: Record<string, string> = {
@@ -835,7 +847,20 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
+  // 4. Return a 504 Gateway Timeout for aborted/timed out requests
+  if (isAbortError(error)) {
+    const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.');
+    return new NextResponse(timeoutSvg, {
+      status: 504,
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+  // 5. Return a 500 Internal Server Error for real crashes
   logger.error('Unhandled error', {
     source: 'streak',
     message,

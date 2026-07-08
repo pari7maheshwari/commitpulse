@@ -6,11 +6,16 @@ import { getValidationCacheForTests } from './validation-cache';
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),

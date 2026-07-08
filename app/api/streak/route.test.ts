@@ -443,7 +443,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=1, stale-while-revalidate=59'
       );
     });
 

@@ -33,7 +33,7 @@ describe('DashboardLayout - mock integrations', () => {
     );
 
     expect(screen.getByTestId('async-child')).toHaveTextContent('Loading...');
-    
+
     await act(async () => {
       vi.advanceTimersByTime(100);
     });
